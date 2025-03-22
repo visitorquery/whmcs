@@ -143,9 +143,11 @@ EOF;
 					$invalidateActionHtml = '<span>Invalidated</span>';
 				}
 
+				$session_id = explode(':', $detection->session_id)[0];
+
 				$rowsHtml .= <<<EOF
 					<tr>
-						<td style="font-family: monospace; font-weight: bold">{$detection->session_id}</td>
+						<td style="font-family: monospace; font-weight: bold">{$session_id}</td>
 						<td>{$username}</td>
 						<td style="font-family: monospace">{$detection->ip_address}</td>
 						<td style="font-family: monospace">{$detection->confidence}</td>

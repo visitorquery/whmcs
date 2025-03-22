@@ -51,7 +51,7 @@ if (!isset($postData['data'])) {
 	exit;
 }
 
-if (!isset($postData['data']['ip'])) {
+if (!isset($postData['data']['ip_address'])) {
 	header('HTTP/1.1 401 Unauthorized');
 	echo json_encode(['status' => 'error', 'message' => 'Invalid authentication: data.ip']);
 	exit;
@@ -79,7 +79,7 @@ if (!isset($postData['data']['confidence'])) {
 try {
 	// Insert the detection into the database
 	Capsule::table('mod_visitorquery_detections')->insert([
-		'ip_address' => $postData['data']['ip'],
+		'ip_address' => $postData['data']['ip_address'],
 		'detect_id' => $postData['data']['id'],
 		'session_id' => $postData['data']['session_id'],
 		'confidence' => (float)$postData['data']['confidence'],

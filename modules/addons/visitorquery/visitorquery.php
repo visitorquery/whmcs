@@ -112,6 +112,8 @@ function visitorquery_activate() {
 				}
 			);
 
+		// ADD THE WEBHOOK
+
 
 		return [
 			// Supported values here include: success, error or info
