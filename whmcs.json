@@ -21,14 +21,14 @@
   },
   "support": {
     "homepage": "https:\/\/www.visitorquery.com\/",
-    "learn_more": "https:\/\/www.visitorquery.com\/tour",
+    "learn_more": "https:\/\/www.visitorquery.com\/features",
     "email": "sales@visitorquery.com",
-    "support_url": "https:\/\/support.visitorquery.com\/",
-    "docs_url": "https:\/\/developers.visitorquery.com\/addon-modules\/"
+    "support_url": "https:\/\/visitorquery.com\/support",
+    "docs_url": "https:\/\/docs.visitorquery.com\/integrations\/whmcs\/"
   },
   "authors": [
     {
-      "name": "WHMCS",
+      "name": "VisitorQuery",
       "homepage": "https:\/\/www.visitorquery.com\/"
     }
   ]
