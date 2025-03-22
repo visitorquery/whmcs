@@ -1,32 +1,35 @@
 {
-    "schema": "1.0",
-    "type": "whmcs-addons",
-    "name": "sample-addon-module",
-    "license": "MIT",
-    "category": "addon",
-    "description": {
-        "name": "Sample Addon Module",
-        "tagline": "An addon module allows you to add additional functionality to WHMCS.",
-        "long": "This sample file demonstrates how an addon module for WHMCS should be structured and exercises all supported functionality.",
-        "features": [
-            "Provide both client and admin facing user interfaces",
-            "Utilize hook functionality within WHMCS"
-        ]
-    },
-    "logo": {
-        "filename": "logo.png"
-    },
-    "support": {
-        "homepage": "https:\/\/www.whmcs.com\/", 
-        "learn_more": "https:\/\/www.whmcs.com\/tour", 
-        "email": "support@whmcs.com", 
-        "support_url": "https:\/\/support.whmcs.com\/",
-        "docs_url": "https:\/\/developers.whmcs.com\/addon-modules\/"
-    },
-    "authors": [
-        {
-            "name": "WHMCS",
-            "homepage": "https:\/\/www.whmcs.com\/"
-        }
+  "schema": "1.0",
+  "type": "whmcs-addons",
+  "name": "visitorquery",
+  "license": "MIT",
+  "category": "addon",
+  "description": {
+    "name": "Detect proxy and VPN users",
+    "tagline": "This addon allows you to Detect proxy and VPN users and block them from using certain payment gateways",
+    "long": "This addon allows you to Detect proxy and VPN users and block them from using certain payment gateways thus, reducing fraud and chargebacks.",
+    "features": [
+      "proxy detection",
+      "vpn detection",
+      "residential proxy detection",
+      "residential vpn detection",
+      "hide payment gateways"
     ]
+  },
+  "logo": {
+    "filename": "logo.png"
+  },
+  "support": {
+    "homepage": "https:\/\/www.visitorquery.com\/",
+    "learn_more": "https:\/\/www.visitorquery.com\/tour",
+    "email": "sales@visitorquery.com",
+    "support_url": "https:\/\/support.visitorquery.com\/",
+    "docs_url": "https:\/\/developers.visitorquery.com\/addon-modules\/"
+  },
+  "authors": [
+    {
+      "name": "WHMCS",
+      "homepage": "https:\/\/www.visitorquery.com\/"
+    }
+  ]
 }

@@ -45,12 +45,12 @@ function visitorquery_config() {
 				'Default' => '0.60',
 			],
 			'show_message' => [
-				'FriendlyName' => 'Show Message',
+				'FriendlyName' => 'Show Warning Message',
 				'Type' => 'yesno',
 				'Description' => 'Show a message to the client when a proxy/VPN is detected',
 			],
 			'message' => [
-				'FriendlyName' => 'Message',
+				'FriendlyName' => 'Warning Message',
 				'Type' => 'textarea',
 				'Rows' => '3',
 				'Description' => 'The message to show to the client when a proxy/VPN is detected',
