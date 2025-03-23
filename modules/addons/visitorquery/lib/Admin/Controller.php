@@ -123,13 +123,12 @@ EOF;
 		if (count($detections) > 0) {
 			foreach ($detections as $detection) {
 				// last part of the session_id is the user_id
-				$parts = explode(':', $detection->session_id);
-				$username = "";
-				if (count($parts) > 2) {
-					$user = Client::find($parts[count($parts) - 1]);
+				$userEmail = "";
+				if ($detection->user_id) {
+					$user = Client::find($detection->user_id);
 
 					if ($user) {
-						$username = $user->owner()->first()->email;
+						$userEmail = $user->owner()->first()->email;
 					}
 				}
 
@@ -148,9 +147,10 @@ EOF;
 				$rowsHtml .= <<<EOF
 					<tr>
 						<td style="font-family: monospace; font-weight: bold">{$session_id}</td>
-						<td>{$username}</td>
+						<td>{$userEmail}</td>
 						<td style="font-family: monospace">{$detection->ip_address}</td>
-						<td style="font-family: monospace">{$detection->confidence}</td>
+						<td style="font-family: monospace">{$detection->confidence_bot}</td>
+						<td style="font-family: monospace">{$detection->confidence_proxy_vpn}</td>
 						<td style="font-family: monospace">{$detection->created_at}</td>
 						<td style="text-align: right">{$invalidateActionHtml}</td>
 					</tr>
@@ -161,7 +161,7 @@ EOF;
 		$footerHtml = <<<EOF
 <tfoot>
 	<tr>
-		<td colspan="6">
+		<td colspan="7">
 			<div style="display: flex; padding-top: 7px">
 				<p style="flex-grow: 1; text-align: left;">
 					Page {$currentPage} of {$numPages}
@@ -185,12 +185,17 @@ EOF;
 	<table id="visitorQueryTable" class="datatable display" style="width:100%">
 		<thead>
 			<tr>
-				<th style="">Session ID</th>
-				<th style="width: 140px">User</th>
-				<th style="width: 140px">IP Address</th>
-				<th style="width: 120px">Confidence</th>
-				<th style="width: 200px">Date</th>
-				<th style="width: 100px">&nbsp;</th>
+				<th style="" rowspan="2">Session ID</th>
+				<th style="width: 300px" rowspan="2">User</th>
+				<th style="width: 140px" rowspan="2">IP Address</th>
+				<th style="width: 180px" colspan="2">Confidence</th>
+				<th style="width: 200px" rowspan="2">Date</th>
+				<th style="width: 100px" rowspan="2">&nbsp;</th>
+			</tr>
+			
+			<tr>
+				<th style="width: 90px">Bot</th>
+				<th style="width: 90px">Proxy/VPN</th>
 			</tr>
 		</thead>
 		

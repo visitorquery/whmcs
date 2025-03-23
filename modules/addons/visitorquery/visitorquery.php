@@ -1,6 +1,6 @@
 <?php
 
-
+use WHMCS\Config\Setting;
 use WHMCS\Database\Capsule;
 
 use WHMCS\Module\Addon\VisitorQuery\Admin\AdminDispatcher;
@@ -19,17 +19,11 @@ function visitorquery_config() {
 		'language' => 'english',
 		'version' => '1.0',
 		'fields' => [
-			'pubAK' => [
-				'FriendlyName' => 'Project Public API KEY',
+			'projectId' => [
+				'FriendlyName' => 'Project Id',
 				'Type' => 'text',
 				'Size' => '65',
-				'Description' => 'Your project\'s public API KEY.',
-			],
-			'privAK' => [
-				'FriendlyName' => 'Project Private API KEY',
-				'Type' => 'text',
-				'Size' => '65',
-				'Description' => 'Your project\'s private API KEY',
+				'Description' => 'The id of the project you want to use'
 			],
 			'apiKey' => [
 				'FriendlyName' => 'Developer API KEY',
@@ -97,23 +91,32 @@ function visitorquery_config() {
 function visitorquery_activate() {
 	// Create custom tables and schema required by your module
 	try {
+		Capsule::schema()
+			->create(
+				'mod_visitorquery_projects',
+				function ($table) {
+					$table->increments('id');
+					$table->text('project_id');
+					$table->text('api_key_public');
+					$table->text('api_key_private');
+				}
+			);
 
 		Capsule::schema()
 			->create(
 				'mod_visitorquery_detections',
 				function ($table) {
 					$table->increments('id');
+					$table->text('user_id');
 					$table->text('detect_id');
 					$table->text('ip_address');
 					$table->text('session_id');
 					$table->boolean('invalidated')->default(false);
-					$table->float('confidence', 3, 2);
+					$table->float('confidence_bot', 3, 2);
+					$table->float('confidence_proxy_vpn', 3, 2);
 					$table->timestamp('created_at')->useCurrent();
 				}
 			);
-
-		// ADD THE WEBHOOK
-
 
 		return [
 			// Supported values here include: success, error or info
@@ -130,6 +133,7 @@ function visitorquery_activate() {
 
 function visitorquery_deactivate() {
 	try {
+		Capsule::schema()->dropIfExists('mod_visitorquery_projects');
 		Capsule::schema()->dropIfExists('mod_visitorquery_detections');
 
 		return [

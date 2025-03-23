@@ -1,5 +1,16 @@
 <?php
 
+// Add CORS headers to allow all origins
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Handle preflight OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+	header('HTTP/1.1 200 OK');
+	exit;
+}
+
 // Initialize WHMCS if not already done
 use WHMCS\Database\Capsule;
 
@@ -20,15 +31,21 @@ if (!defined("WHMCS")) {
 }
 
 $moduleConfig = getModuleConfigOptions('visitorquery');
-$privateApiKey = !empty($moduleConfig['privAK']) ? $moduleConfig['privAK'] : '';
+$project = Capsule::table('mod_visitorquery_projects')
+	->where('project_id', $moduleConfig["projectId"])
+	->first();
+
+if (!$project) {
+	header('HTTP/1.1 400 Bad Request');
+	echo json_encode(['status' => 'error', 'message' => 'Invalid project ID']);
+	exit;
+}
+
+// @TODO: Validate the request has required headers!!!!
 
 // Get input data (supports both JSON and form POST)
 $requestBody = file_get_contents('php://input');
-if (!empty($requestBody)) {
-	$postData = json_decode($requestBody, true);
-} else {
-	$postData = $_POST;
-}
+$postData = json_decode($requestBody, true);
 
 // Log the incoming webhook
 logModuleCall(
@@ -47,42 +64,64 @@ if (empty($postData) || !isset($postData['type'])) {
 
 if (!isset($postData['data'])) {
 	header('HTTP/1.1 400 Bad Request');
-	echo json_encode(['status' => 'error', 'message' => 'Missing required data: data']);
+	echo json_encode($postData);
 	exit;
 }
 
 if (!isset($postData['data']['ip_address'])) {
-	header('HTTP/1.1 401 Unauthorized');
+	header('HTTP/1.1 400 Bad Request');
 	echo json_encode(['status' => 'error', 'message' => 'Invalid authentication: data.ip']);
 	exit;
 }
 
 if (!isset($postData['data']['id'])) {
-	header('HTTP/1.1 401 Unauthorized');
+	header('HTTP/1.1 400 Bad Request');
 	echo json_encode(['status' => 'error', 'message' => 'Invalid authentication: data.id']);
 	exit;
 }
 
 if (!isset($postData['data']['session_id'])) {
-	header('HTTP/1.1 401 Unauthorized');
+	header('HTTP/1.1 400 Bad Request');
 	echo json_encode(['status' => 'error', 'message' => 'Invalid authentication']);
 	exit;
 }
 
 if (!isset($postData['data']['confidence'])) {
-	header('HTTP/1.1 401 Unauthorized');
+	header('HTTP/1.1 400 Bad Request');
 	echo json_encode(['status' => 'error', 'message' => 'Invalid authentication']);
+	exit;
+}
+
+if (!isset($postData['data']['confidence']['bot'])) {
+	header('HTTP/1.1 400 Bad Request');
+	echo json_encode(['status' => 'error', 'message' => 'Bot confidence missing']);
+	exit;
+}
+
+if (!isset($postData['data']['confidence']['proxy_vpn'])) {
+	header('HTTP/1.1 400 Bad Request');
+	echo json_encode(['status' => 'error', 'message' => 'Proxy/VPN confidence missing']);
 	exit;
 }
 
 // Process the detection
 try {
+	$sidSplit = explode(':', $postData['data']['session_id']);
+	$sid = $sidSplit[0];
+
+	$uid = null;
+	if (count($sidSplit) > 1) {
+		$uid = $sidSplit[1];
+	}
+
 	// Insert the detection into the database
 	Capsule::table('mod_visitorquery_detections')->insert([
 		'ip_address' => $postData['data']['ip_address'],
 		'detect_id' => $postData['data']['id'],
-		'session_id' => $postData['data']['session_id'],
-		'confidence' => (float)$postData['data']['confidence'],
+		'user_id' => $uid,
+		'session_id' => $sid,
+		'confidence_bot' => (float)$postData['data']['confidence']['bot'],
+		'confidence_proxy_vpn' => (float)$postData['data']['confidence']['proxy_vpn'],
 		'created_at' => date('Y-m-d H:i:s')
 	]);
 

@@ -1,16 +1,133 @@
 <?php
 
 use WHMCS\Module\Gateway;
+use WHMCS\Config\Setting;
+
 use Illuminate\Database\Capsule\Manager as Capsule;
+
+
+add_hook('AdminAreaPage', 1, function ($vars) {
+	$extraVariables = [];
+	$moduleConfig = getModuleConfigOptions('visitorquery');
+
+	if (!$moduleConfig["projectId"]) {
+		// we just installed but did not configure
+		return '';
+	}
+
+	$projectfromDb = Capsule::table('mod_visitorquery_projects')
+		->where('project_id', $moduleConfig["projectId"])
+		->first();
+
+	if ($projectfromDb) {
+		// we have the project stored which means we already did the setup
+		return '';
+	}
+
+	$project = getProject($moduleConfig['projectId'], $moduleConfig['apiKey']);
+
+	if (str_contains($project, "cURL Error")) {
+		$extraVariables['jquerycode'] = '
+            $("#contentarea").prepend(`
+                <div class="errorbox">
+                    <strong>
+                        <span class="title">VisitorQuery error!</span>
+                    </strong>
+                     </br> 
+                     We had a problem fetching the project details from VisitorQuery. 
+                     Please check your API key and project ID.
+                </div>`);
+            ';
+		return $extraVariables;
+	}
+
+	$parsedProject = json_decode($project, true);
+
+	if (!isset($parsedProject["data"])) {
+		$extraVariables['jquerycode'] = '
+            $("#contentarea").prepend(`
+                <div class="errorbox">
+                    <strong>
+                        <span class="title">VisitorQuery error!</span>
+                    </strong>
+                     </br> 
+                     We had a problem fetching the project details from VisitorQuery. 
+                     Please check your API key and project ID.
+                </div>`);
+            ';
+		return $extraVariables;
+	}
+
+	$requiredFields = ["id", "apiKeyPublic", "apiKeyPrivate", "domain"];
+
+	foreach ($requiredFields as $field) {
+		if (!isset($parsedProject["data"][$field])) {
+			$extraVariables['jquerycode'] = '
+            $("#contentarea").prepend(`
+                <div class="errorbox">
+                    <strong>
+                        <span class="title">VisitorQuery error!</span>
+                    </strong>
+                     </br> 
+                     We had a problem fetching the project details from VisitorQuery. 
+                     Please check your API key and project ID.
+                </div>`);
+            ';
+			return $extraVariables;
+		}
+	}
+
+	// Insert the project into the database
+	Capsule::table('mod_visitorquery_projects')->insert([
+		'project_id' => $parsedProject["data"]['id'],
+		'api_key_public' => $parsedProject["data"]['apiKeyPublic'],
+		'api_key_private' => $parsedProject["data"]['apiKeyPrivate'],
+	]);
+
+
+	// Add a webhook to the project
+	$rootUrl = Setting::getValue('SystemURL');
+
+	// Add forward slash if missing
+	if (substr($rootUrl, -1) !== '/') {
+		$rootUrl .= '/';
+	}
+
+	$hookUrl = $rootUrl . 'modules/addons/visitorquery/callback.php';
+	$webhookResponse = addWebHook(
+		$parsedProject["data"]['id'],
+		$hookUrl,
+		$moduleConfig['apiKey']
+	);
+
+	if (str_contains($webhookResponse, "cURL Error")) {
+		$extraVariables['jquerycode'] = '
+            $("#contentarea").prepend(`
+                <div class="errorbox">
+                    <strong>
+                        <span class="title">VisitorQuery error!</span>
+                    </strong>
+                     </br> 
+                     We had a problem setting the webhok on VisitorQuery.
+                     Verify all details and, if everything looks correct, setup one yourself in the VisitorQuery dashboard.
+                     Webhook URL: ' . $hookUrl . '
+                </div>`);
+            ';
+	}
+
+	return $extraVariables;
+});
 
 add_hook('ClientAreaHeaderOutput', 1, function ($vars) {
 	session_start();
 
 	$userId = $_SESSION['uid'] ?? 0;
 	$moduleConfig = getModuleConfigOptions('visitorquery');
-	$publicApiKey = !empty($moduleConfig['pubAK']) ? $moduleConfig['pubAK'] : '';
+	$project = Capsule::table('mod_visitorquery_projects')
+		->where('project_id', $moduleConfig["projectId"])
+		->first();
 
-	if ($publicApiKey == '') {
+	if (!$project) {
 		return '';
 	}
 
@@ -21,7 +138,7 @@ add_hook('ClientAreaHeaderOutput', 1, function ($vars) {
 <script type="text/javascript">
 	window.addEventListener('load', () => {
 		window.VisitorQuery.run({
-			ApiKey   : "{$publicApiKey}",
+			ApiKey   : "{$project->api_key_public}",
 			SessionId: "{$sessionId}:{$userId}",
 		});
 	});
@@ -33,19 +150,22 @@ EOT;
 
 // Didn't find a better place to show the message than via js/jquery
 add_hook('ShoppingCartCheckoutOutput', 1, function ($vars) {
+	session_start();
+
 	$sessionId = session_id();
 	$moduleConfig = getModuleConfigOptions('visitorquery');
+
 	$minConfidence = !empty($moduleConfig['minConfidence']) ? (float)$moduleConfig['minConfidence'] : 0.9;
 
-	// Check if this IP is flagged in our detections table
+	// Check if this session id is flagged in our detections table
 	$detections = Capsule::table('mod_visitorquery_detections')
 		->where('session_id', $sessionId)
 		->get();
 
 	$highestConfidence = 0;
 	foreach ($detections as $detection) {
-		if ($detection->confidence > $highestConfidence) {
-			$highestConfidence = $detection->confidence;
+		if ($detection->confidence_proxy_vpn > $highestConfidence) {
+			$highestConfidence = $detection->confidence_proxy_vpn;
 		}
 	}
 
@@ -78,6 +198,8 @@ add_hook('ShoppingCartCheckoutOutput', 1, function ($vars) {
 });
 
 add_hook('ClientAreaPageCart', 1, function ($vars) {
+	session_start();
+
 	if (isset($vars['gateways']) && is_array($vars['gateways'])) {
 		$moduleConfig = getModuleConfigOptions('visitorquery');
 		$sessionId = session_id();
@@ -94,8 +216,8 @@ add_hook('ClientAreaPageCart', 1, function ($vars) {
 
 		$highestConfidence = 0;
 		foreach ($detections as $detection) {
-			if ($detection->confidence > $highestConfidence) {
-				$highestConfidence = $detection->confidence;
+			if ($detection->confidence_proxy_vpn > $highestConfidence) {
+				$highestConfidence = $detection->confidence_proxy_vpn;
 			}
 		}
 
@@ -161,4 +283,66 @@ function getModuleConfigOptions($moduleName) {
 	}
 
 	return $config;
+}
+
+
+function getProject($projectId, $apiKey): string {
+	$curl = curl_init();
+
+	curl_setopt_array($curl, [
+		CURLOPT_URL => "https://visitorquery.com/api/v1/projects/{$projectId}",
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_ENCODING => "",
+		CURLOPT_MAXREDIRS => 10,
+		CURLOPT_TIMEOUT => 30,
+		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+		CURLOPT_CUSTOMREQUEST => "GET",
+		CURLOPT_HTTPHEADER => [
+			"Authorization: Bearer {$apiKey}"
+		],
+	]);
+
+	$response = curl_exec($curl);
+	$err = curl_error($curl);
+
+	curl_close($curl);
+
+	if ($err) {
+		return "cURL Error #:" . $err;
+	} else {
+		return $response;
+	}
+}
+
+function addWebHook($projectId, $webhookUrl, $apiKey) {
+	$curl = curl_init();
+
+	curl_setopt_array($curl, [
+		CURLOPT_URL => "https://visitorquery.com/api/v1/projects/{$projectId}/webhooks",
+		CURLOPT_RETURNTRANSFER => true,
+		CURLOPT_ENCODING => "",
+		CURLOPT_MAXREDIRS => 10,
+		CURLOPT_TIMEOUT => 30,
+		CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+		CURLOPT_CUSTOMREQUEST => "POST",
+		CURLOPT_POSTFIELDS => json_encode([
+			"type" => "proxy_vpn_detect",
+			"url" => $webhookUrl
+		]),
+		CURLOPT_HTTPHEADER => [
+			"Authorization: Bearer {$apiKey}",
+			"Content-Type: application/json"
+		],
+	]);
+
+	$response = curl_exec($curl);
+	$err = curl_error($curl);
+
+	curl_close($curl);
+
+	if ($err) {
+		return "cURL Error #:" . $err;
+	} else {
+		return $response;
+	}
 }
