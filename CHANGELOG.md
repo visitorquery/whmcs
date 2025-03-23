@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.1](https://github.com/visitorquery/whmcs/compare/v1.1.0...v1.1.1) (2025-03-23)
+
+
+### Bug Fixes
+
+* wrong default value in callback param ([ceef97a](https://github.com/visitorquery/whmcs/commit/ceef97a978013cd91dfa5100cdc7b9830635a795))
+
 ## [1.1.0](https://github.com/visitorquery/whmcs/compare/v1.0.3...v1.1.0) (2025-03-23)
 
 
