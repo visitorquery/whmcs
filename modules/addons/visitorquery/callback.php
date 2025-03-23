@@ -109,7 +109,7 @@ try {
 	$sidSplit = explode(':', $postData['data']['session_id']);
 	$sid = $sidSplit[0];
 
-	$uid = null;
+	$uid = '';
 	if (count($sidSplit) > 1) {
 		$uid = $sidSplit[1];
 	}
