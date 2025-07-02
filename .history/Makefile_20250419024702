@@ -1,8 +1,0 @@
-sync:
-	rsync --rsh='ssh' -a --delete --exclude '.git' ./modules/addons/visitorquery/ root@167.99.246.243:/var/www/vhosts/whmcs.visitorquery.com/httpdocs/modules/addons/visitorquery
-	fswatch -o ../ | xargs -n1 -I{} rsync --rsh='ssh' -a --delete --exclude '.git' ./modules/addons/visitorquery/ root@167.99.246.243:/var/www/vhosts/whmcs.visitorquery.com/httpdocs/modules/addons/visitorquery
-
-release:
-	git fetch --tags -f
-	standard-version
-	git push --follow-tags origin master
