@@ -142,7 +142,7 @@ EOF;
 					$invalidateActionHtml = '<span>Invalidated</span>';
 				}
 
-				$session_id = explode(':', $detection->backend_session_id)[0];
+				$session_id = explode(':', $detection->session_id)[0];
 
 				$rowsHtml .= <<<EOF
 					<tr>

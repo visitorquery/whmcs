@@ -211,7 +211,7 @@ add_hook('ClientAreaPageCart', 1, function ($vars) {
 
 		// Check if this IP is flagged in our detections table
 		$detections = Capsule::table('mod_visitorquery_detections')
-			->where('backend_session_id', $sessionId)
+			->where('session_id', $sessionId)
 			->get();
 
 		$highestConfidence = 0;

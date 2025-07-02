@@ -111,12 +111,14 @@ if (!isset($postData['data']['confidence']['proxy_vpn'])) {
 }
 
 $bsidSplit = explode(':', $postData['data']['backend_session_id']);
-$bsid = $bsidSplit[0];
+$bsid = $sidSplit[0];
 
 $uid = '';
 if (count($bsidSplit) > 1) {
 	$uid = $bsidSplit[1];
 }
+
+throw new Exception('bsid: ' . $bsid);
 
 // Insert the detection into the database
 Capsule::table('mod_visitorquery_detections')->insert([

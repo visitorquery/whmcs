@@ -47,6 +47,8 @@ if (!$project) {
 $requestBody = file_get_contents('php://input');
 $postData = json_decode($requestBody, true);
 
+die(print_r($postData, true));
+
 // Log the incoming webhook
 logModuleCall(
 	'visitorquery',
@@ -110,26 +112,41 @@ if (!isset($postData['data']['confidence']['proxy_vpn'])) {
 	exit;
 }
 
-$bsidSplit = explode(':', $postData['data']['backend_session_id']);
-$bsid = $bsidSplit[0];
+// Process the detection
+try {
+	$bsidSplit = explode(':', $postData['data']['backend_session_id']);
+	$bsid = $sidSplit[0];
 
-$uid = '';
-if (count($bsidSplit) > 1) {
-	$uid = $bsidSplit[1];
+	$uid = '';
+	if (count($sidSplit) > 1) {
+		$uid = $sidSplit[1];
+	}
+
+	// Insert the detection into the database
+	Capsule::table('mod_visitorquery_detections')->insert([
+		'ip_address' => $postData['data']['ip_address'],
+		'detect_id' => $postData['data']['id'],
+		'user_id' => $uid,
+		'backend_session_id' => $bsid,
+		'client_session_id' => $postData['data']['client_session_id'],
+		'confidence_bot' => (float)$postData['data']['confidence']['bot'],
+		'confidence_proxy_vpn' => (float)$postData['data']['confidence']['proxy_vpn'],
+		'created_at' => date('Y-m-d H:i:s')
+	]);
+
+	// Respond with success
+	header('Content-Type: application/json');
+	echo json_encode(['status' => 'success']);
+} catch (Exception $e) {
+	// Log the error
+	logModuleCall(
+		'visitorquery',
+		'Webhook Error',
+		$postData,
+		$e->getMessage()
+	);
+
+	// Respond with error
+	header('HTTP/1.1 500 Internal Server Error');
+	echo json_encode(['status' => 'error', 'message' => 'Failed to process detection']);
 }
-
-// Insert the detection into the database
-Capsule::table('mod_visitorquery_detections')->insert([
-	'ip_address' => $postData['data']['ip_address'],
-	'detect_id' => $postData['data']['id'],
-	'user_id' => $uid,
-	'backend_session_id' => $bsid,
-	'client_session_id' => $postData['data']['client_session_id'],
-	'confidence_bot' => (float)$postData['data']['confidence']['bot'],
-	'confidence_proxy_vpn' => (float)$postData['data']['confidence']['proxy_vpn'],
-	'created_at' => date('Y-m-d H:i:s')
-]);
-
-// Respond with success
-header('Content-Type: application/json');
-echo json_encode(['status' => 'success']);
